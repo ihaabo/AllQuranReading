@@ -1,0 +1,67 @@
+let currentSurah = 1;
+let isReading = false;
+let utterance = null;
+
+async function fetchSurah(number) {
+  const arabic = await fetch(`https://api.alquran.cloud/v1/surah/${number}/ar.alafasy`).then(r => r.json());
+  const translation = await fetch(`https://api.alquran.cloud/v1/surah/${number}/nl.kugelpka`).then(r => r.json());
+
+  document.getElementById("surahTitle").innerText = arabic.data.englishName + " - " + arabic.data.name;
+  document.getElementById("arabicText").innerText = arabic.data.ayahs.map(a => a.text).join(" ");
+  document.getElementById("translationText").innerText = translation.data.ayahs.map(a => a.text).join(" ");
+}
+
+function nextSurah() {
+  if (currentSurah < 114) {
+    currentSurah++;
+    fetchSurah(currentSurah);
+    updateDropdown();
+  }
+}
+
+function previousSurah() {
+  if (currentSurah > 1) {
+    currentSurah--;
+    fetchSurah(currentSurah);
+    updateDropdown();
+  }
+}
+
+function updateDropdown() {
+  const select = document.getElementById("surahSelect");
+  select.value = currentSurah;
+}
+
+function toggleRead() {
+  if (!isReading) {
+    const text = document.getElementById("arabicText").innerText;
+    utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ar-SA";
+    speechSynthesis.speak(utterance);
+    isReading = true;
+
+    utterance.onend = () => {
+      isReading = false;
+    };
+  } else {
+    speechSynthesis.cancel();
+    isReading = false;
+  }
+}
+
+function setupDropdown() {
+  const select = document.getElementById("surahSelect");
+  for (let i = 1; i <= 114; i++) {
+    const option = document.createElement("option");
+    option.value = i;
+    option.textContent = `Surah ${i}`;
+    select.appendChild(option);
+  }
+  select.addEventListener("change", () => {
+    currentSurah = parseInt(select.value);
+    fetchSurah(currentSurah);
+  });
+}
+
+setupDropdown();
+fetchSurah(currentSurah);
